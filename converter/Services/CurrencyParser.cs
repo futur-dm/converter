@@ -108,7 +108,7 @@ namespace CurrencyConverter.Services
                     // Проверяем, все ли курсы найдены
                     foundInPrimaryCategory = usdBuy > 0 && usdSell > 0 && eurBuy > 0 && eurSell > 0;
 
-                    if (usdBuy == 0 || usdSell == 0 || eurBuy == 0 || eurSell == 0)
+                    if (!foundInPrimaryCategory)
                     {
                         throw new Exception("Не удалось получить все необходимые курсы валют");
                     }

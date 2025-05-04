@@ -25,18 +25,32 @@ namespace CurrencyConverter.Models
         {
             if (fromCurrency == toCurrency) return amount;
 
-            if (fromCurrency == "RUB" && toCurrency == "USD") return amount / UsdSell;
-            if (fromCurrency == "RUB" && toCurrency == "EUR") return amount / EurSell;
-            if (fromCurrency == "USD" && toCurrency == "RUB") return amount * UsdBuy;
-            if (fromCurrency == "EUR" && toCurrency == "RUB") return amount * EurBuy;
+            // RUB -> USD/EUR
+            if (fromCurrency == "RUB")
+            {
+                if (toCurrency == "USD") return amount / UsdSell;
+                if (toCurrency == "EUR") return amount / EurSell;
+            }
 
-            // Конвертация через RUB (USD->EUR или EUR->USD)
+            // USD/EUR -> RUB
+            if (toCurrency == "RUB")
+            {
+                if (fromCurrency == "USD") return amount * UsdBuy;
+                if (fromCurrency == "EUR") return amount * EurBuy;
+            }
+
+            // USD <-> EUR через RUB
             if (fromCurrency == "USD" && toCurrency == "EUR")
+            {
                 return (amount * UsdBuy) / EurSell;
-            if (fromCurrency == "EUR" && toCurrency == "USD")
-                return (amount * EurBuy) / UsdSell;
+            }
 
-            throw new ArgumentException("Неподдерживаемые валюты");
+            if (fromCurrency == "EUR" && toCurrency == "USD")
+            {
+                return (amount * EurBuy) / UsdSell;
+            }
+
+            throw new ArgumentException($"Неподдерживаемая конвертация: {fromCurrency}->{toCurrency}");
         }
     }
 }

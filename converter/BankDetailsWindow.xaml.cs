@@ -11,10 +11,9 @@ namespace CurrencyConverter.Views
 {
     public partial class BankDetailsWindow : Window, INotifyPropertyChanged
     {
-        // Конструктор должен быть partial
         public BankDetailsWindow(ExchangeRate bestRate)
         {
-            InitializeComponent(); // Теперь будет работать
+            InitializeComponent();
             DataContext = this;
 
             BackCommand = new RelayCommand(_ => GoBack());
@@ -23,7 +22,6 @@ namespace CurrencyConverter.Views
             BankAddresses = CurrencyParser.GetBankAddresses();
         }
 
-        // Остальной код без изменений...
         private ExchangeRate _bestRate;
         public ExchangeRate BestRate
         {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using CurrencyConverter.Models;
 
 namespace CurrencyConverter.Views
@@ -49,35 +50,25 @@ namespace CurrencyConverter.Views
 
         private double ConvertCurrency(double amount, string fromCurrency, string toCurrency)
         {
-            if (fromCurrency == toCurrency)
-                return amount;
+            if (fromCurrency == "RUB" && toCurrency == "USD")
+                return amount / _bestRate.UsdSell;
 
-            // Конвертация в RUB
-            if (fromCurrency == "RUB")
-            {
-                return toCurrency switch
-                {
-                    "USD" => amount / _bestRate.UsdSell,
-                    "EUR" => amount / _bestRate.EurSell,
-                    _ => throw new Exception("Неподдерживаемая валюта")
-                };
-            }
-            // Конвертация из RUB
-            else if (toCurrency == "RUB")
-            {
-                return fromCurrency switch
-                {
-                    "USD" => amount * _bestRate.UsdBuy,
-                    "EUR" => amount * _bestRate.EurBuy,
-                    _ => throw new Exception("Неподдерживаемая валюта")
-                };
-            }
-            // Конвертация между USD и EUR через RUB
-            else
-            {
-                double rubAmount = ConvertCurrency(amount, fromCurrency, "RUB");
-                return ConvertCurrency(rubAmount, "RUB", toCurrency);
-            }
+            if (fromCurrency == "RUB" && toCurrency == "EUR")
+                return amount / _bestRate.EurSell;
+
+            if (fromCurrency == "USD" && toCurrency == "RUB")
+                return amount * _bestRate.UsdBuy;
+
+            if (fromCurrency == "EUR" && toCurrency == "RUB")
+                return amount * _bestRate.EurBuy;
+
+            if (fromCurrency == "USD" && toCurrency == "EUR")
+                return (amount * _bestRate.UsdBuy) / _bestRate.EurSell;
+
+            if (fromCurrency == "EUR" && toCurrency == "USD")
+                return (amount * _bestRate.EurBuy) / _bestRate.UsdSell;
+
+            throw new ArgumentException("Неподдерживаемая валютная пара");
         }
     }
 }
