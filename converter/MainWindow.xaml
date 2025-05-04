@@ -1,0 +1,13 @@
+﻿<Window x:Class="CurrencyConverter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Конвертер валют" Height="200" Width="300">
+    <Grid>
+        <Button Content="Начать работу конвертера" 
+                HorizontalAlignment="Center" 
+                VerticalAlignment="Center" 
+                Width="200" Height="40"
+                FontSize="14"
+                Click="StartButton_Click"/>
+    </Grid>
+</Window>
