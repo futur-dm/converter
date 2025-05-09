@@ -22,40 +22,25 @@ namespace CurrencyConverter.Services
                 using (var webClient = new WebClient())
                 {
                     string xml = webClient.DownloadString("https://www.cbr.ru/scripts/XML_daily.asp");
-                    LogMessage("Успешно получены данные от ЦБ РФ");
-                    LogDebugData("ЦБ РФ XML", xml);
-
                     XmlDocument xmlDoc = new XmlDocument();
                     xmlDoc.LoadXml(xml);
 
-                    // Парсинг USD
-                    var usdNode = xmlDoc.SelectSingleNode("//Valute[CharCode='USD']");
-                    int usdNominal = int.Parse(usdNode.SelectSingleNode("Nominal").InnerText);
-                    double usdValue = Convert.ToDouble(usdNode.SelectSingleNode("Value").InnerText.Replace(",", "."));
-                    double usdRate = usdValue / usdNominal;
+                    double usdRate = Convert.ToDouble(xmlDoc.SelectSingleNode("//Valute[CharCode='USD']/Value").InnerText);
+                    double eurRate = Convert.ToDouble(xmlDoc.SelectSingleNode("//Valute[CharCode='EUR']/Value").InnerText);
 
-                    // Парсинг EUR
-                    var eurNode = xmlDoc.SelectSingleNode("//Valute[CharCode='EUR']");
-                    int eurNominal = int.Parse(eurNode.SelectSingleNode("Nominal").InnerText);
-                    double eurValue = Convert.ToDouble(eurNode.SelectSingleNode("Value").InnerText.Replace(",", "."));
-                    double eurRate = eurValue / eurNominal;
-
-                    var result = new ExchangeRate
+                    // ЦБ не указывает отдельно покупку/продажу, используем один курс
+                    return new ExchangeRate
                     {
                         BankName = "Центральный Банк РФ",
-                        UsdBuy = Math.Round(usdRate, 2),
-                        UsdSell = Math.Round(usdRate * 1.02, 2), // +2% для продажи
-                        EurBuy = Math.Round(eurRate, 2),
-                        EurSell = Math.Round(eurRate * 1.02, 2)  // +2% для продажи
+                        UsdBuy = usdRate,
+                        UsdSell = usdRate,
+                        EurBuy = eurRate,
+                        EurSell = eurRate
                     };
-
-                    LogMessage($"Курсы ЦБ: USD {result.UsdBuy}/{result.UsdSell}, EUR {result.EurBuy}/{result.EurSell}");
-                    return result;
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                LogError("Ошибка при получении курсов ЦБ", ex);
                 return null;
             }
         }
@@ -82,25 +67,35 @@ namespace CurrencyConverter.Services
                             string fromCurrency = rate.fromCurrency.name;
                             string toCurrency = rate.toCurrency.name;
 
-                            if (fromCurrency == "USD" && toCurrency == "RUB")
+                            //if (fromCurrency == "USD" && toCurrency == "RUB")
+                            //{
+                            //    usdBuy = rate.buy;
+                            //    LogMessage($"Найден курс покупки USD: {usdBuy}");
+                            //}
+                            //else if (fromCurrency == "RUB" && toCurrency == "USD")
+                            //{
+                            //    usdSell = rate.sell;
+                            //    LogMessage($"Найден курс продажи USD: {usdSell}");
+                            //}
+                            //else if (fromCurrency == "EUR" && toCurrency == "RUB")
+                            //{
+                            //    eurBuy = rate.buy;
+                            //    LogMessage($"Найден курс покупки EUR: {eurBuy}");
+                            //}
+                            //else if (fromCurrency == "RUB" && toCurrency == "EUR")
+                            //{
+                            //    eurSell = rate.sell;
+                            //    LogMessage($"Найден курс продажи EUR: {eurSell}");
+                            //}
+                            if (rate.fromCurrency.name == "USD" && rate.toCurrency.name == "RUB")
                             {
                                 usdBuy = rate.buy;
-                                LogMessage($"Найден курс покупки USD: {usdBuy}");
-                            }
-                            else if (fromCurrency == "RUB" && toCurrency == "USD")
-                            {
                                 usdSell = rate.sell;
-                                LogMessage($"Найден курс продажи USD: {usdSell}");
                             }
-                            else if (fromCurrency == "EUR" && toCurrency == "RUB")
+                            else if (rate.fromCurrency.name == "EUR" && rate.toCurrency.name == "RUB")
                             {
                                 eurBuy = rate.buy;
-                                LogMessage($"Найден курс покупки EUR: {eurBuy}");
-                            }
-                            else if (fromCurrency == "RUB" && toCurrency == "EUR")
-                            {
                                 eurSell = rate.sell;
-                                LogMessage($"Найден курс продажи EUR: {eurSell}");
                             }
                         }
                     }
@@ -116,10 +111,10 @@ namespace CurrencyConverter.Services
                     var result = new ExchangeRate
                     {
                         BankName = "Тинькофф Банк",
-                        UsdBuy = Math.Round(usdBuy, 2),
-                        UsdSell = Math.Round(1 / usdSell, 2), // Инвертируем курс продажи
-                        EurBuy = Math.Round(eurBuy, 2),
-                        EurSell = Math.Round(1 / eurSell, 2)  // Инвертируем курс продажи
+                        UsdBuy = usdBuy,
+                        UsdSell = usdSell,
+                        EurBuy = eurBuy,
+                        EurSell = eurSell,
                     };
 
                     LogMessage($"Финальные курсы Тинькофф: USD {result.UsdBuy}/{result.UsdSell}, EUR {result.EurBuy}/{result.EurSell}");

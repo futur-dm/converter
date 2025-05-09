@@ -216,7 +216,6 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Models.cs" />
     <Compile Include="Models\BankAddress.cs" />
     <Compile Include="Models\ExchangeRate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
