@@ -47,6 +47,7 @@ namespace CurrencyConverter.Views
             {
                 var cbrTask = System.Threading.Tasks.Task.Run(() => CurrencyParser.GetCbrRates());
                 var tinkoffTask = System.Threading.Tasks.Task.Run(() => CurrencyParser.GetTinkoffRates());
+                var alphaTask = System.Threading.Tasks.Task.Run(() => CurrencyParser.GetRaiffeisenRates());
 
                 var rates = new List<ExchangeRate>();
 
@@ -55,6 +56,9 @@ namespace CurrencyConverter.Views
 
                 var tinkoffRate = await tinkoffTask;
                 if (tinkoffRate != null) rates.Add(tinkoffRate);
+
+                var alphaRate = await alphaTask;
+                if (alphaRate != null) rates.Add(alphaRate);
 
                 if (rates.Count > 0)
                 {
