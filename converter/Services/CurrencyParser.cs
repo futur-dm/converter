@@ -128,6 +128,32 @@ namespace CurrencyConverter.Services
             }
         }
 
+        public static ExchangeRate GetAlphaRates()
+        {
+            try
+            {
+                using (var webClient = new WebClient())
+                {
+                    string json = webClient.DownloadString("https://alfabank.ru/api/v1/scrooge/currencies/alfa-rates");
+                    dynamic data = JsonConvert.DeserializeObject(json);
+
+                    return new ExchangeRate
+                    {
+                        BankName = "Альфа-Банк",
+                        UsdBuy = (double)data.rates.cash.USD.buy,
+                        UsdSell = (double)data.rates.cash.USD.sell,
+                        EurBuy = (double)data.rates.cash.EUR.buy,
+                        EurSell = (double)data.rates.cash.EUR.sell,
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError("Ошибка при получении курсов Альфа-Банка", ex);
+                return null;
+            }
+        }
+
         public static List<BankAddress> GetBankAddresses()
         {
             return new List<BankAddress>
@@ -144,6 +170,16 @@ namespace CurrencyConverter.Services
                 new BankAddress
                 {
                     BankName = "Тинькофф Банк",
+                    Addresses = new List<string>
+                    {
+                        "г. Брянск, ул. Дуки, 58 (партнерский пункт)",
+                        "г. Брянск, пр-т Станке Димитрова, 77 (партнерский пункт)",
+                        "г. Брянск, ул. Красноармейская, 100 (партнерский пункт)"
+                    }
+                },
+                new BankAddress
+                {
+                    BankName = "Альфа Банк",
                     Addresses = new List<string>
                     {
                         "г. Брянск, ул. Дуки, 58 (партнерский пункт)",
