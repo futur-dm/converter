@@ -3,9 +3,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Xml;
+using System.Linq;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using CurrencyConverter.Models;
+using HtmlAgilityPack;
 
 namespace CurrencyConverter.Services
 {
@@ -14,6 +16,65 @@ namespace CurrencyConverter.Services
         private static readonly string LogPath = "currency_parser.log";
         private static readonly string ErrorLogPath = "currency_parser_errors.log";
         private static readonly string DebugLogPath = "currency_parser_debug.log";
+
+        public static List<BankAddress> GetBankAddresses()
+        {
+            return new List<BankAddress>
+            {
+                new BankAddress
+                {
+                    BankName = "Центральный Банк РФ",
+                    Addresses = new List<string>
+                    {
+                        "г. Брянск, улица Горького, 34",
+                    }
+                },
+                new BankAddress
+                {
+                    BankName = "Тинькофф Банк",
+                    Addresses = new List<string>
+                    {
+                        "г. Брянск, просп. Ленина, 6А/1",
+                        "г. Брянск, просп. Ленина, 61",
+                        "г. Брянск, 2-я ул. Мичурина, 42",
+                        "г. Брянск, Красноармейская ул., 100",
+                        "г. Брянск, ул. Крахмалёва, 6",
+                        "г. Брянск, Бежицкий район, улица 22-го съезда КПСС, 29",
+                        "г. Брянск, 2-я ул. Мичурина, 42",
+                        "г. Брянск, 2-я ул. Мичурина, 42/1",
+                        "г. Брянск, просп. Станке Димитрова, 108Б",
+                        "г. Брянск, ул. 3-го Интернационала, 8",
+                        "г. Брянск, ул. Димитрова, 29А",
+                        "г. Брянск, Авиационная ул., 7А",
+                        "г. Брянск, ул. Брянского Фронта, 2",
+                        "г. Брянск, Объездная ул., 30",
+                        "г. Брянск, ул. Ульянова, 3",
+                        "г. Брянск, Литейная ул., 80А",
+                        "г. Брянск, ул. Дуки, 63",
+                        "г. Брянск, ул. Бурова, 12А",
+                        "г. Брянск, ул. Ульянова, 92",
+                        "г. Брянск, ул. Брянского Фронта, 2",
+                        "г. Брянск, Вокзальная ул., 120",
+                        "г. Брянск, Литейная ул., 3А",
+                        "г. Брянск, ул. Бурова, 12А",
+                        "г. Брянск, ул. Димитрова, 84",
+                        "г. Брянск, ул. Ульянова, 58А",
+                        "г. Брянск, ул. Горбатова, 18",
+                        "г. Брянск, Красноармейская ул., 100",
+                        "г. Брянск, ул. Ульянова, 3",
+
+                    }
+                },
+                new BankAddress
+                {
+                    BankName = "Райфайзен Банк",
+                    Addresses = new List<string>
+                    {
+                        "г. Брянск, Красноармейская улица, 65",
+                    }
+                }
+            };
+        }
 
         public static ExchangeRate GetCbrRates()
         {
@@ -28,7 +89,6 @@ namespace CurrencyConverter.Services
                     double usdRate = Convert.ToDouble(xmlDoc.SelectSingleNode("//Valute[CharCode='USD']/Value").InnerText);
                     double eurRate = Convert.ToDouble(xmlDoc.SelectSingleNode("//Valute[CharCode='EUR']/Value").InnerText);
 
-                    // ЦБ не указывает отдельно покупку/продажу, используем один курс
                     return new ExchangeRate
                     {
                         BankName = "Центральный Банк РФ",
@@ -59,34 +119,12 @@ namespace CurrencyConverter.Services
                     double usdBuy = 0, usdSell = 0, eurBuy = 0, eurSell = 0;
                     bool foundInPrimaryCategory = false;
 
-                    // Сначала ищем в основной категории
                     foreach (var rate in data.payload.rates)
                     {
                         if (rate.category == "DebitCardsTransfers")
                         {
                             string fromCurrency = rate.fromCurrency.name;
                             string toCurrency = rate.toCurrency.name;
-
-                            //if (fromCurrency == "USD" && toCurrency == "RUB")
-                            //{
-                            //    usdBuy = rate.buy;
-                            //    LogMessage($"Найден курс покупки USD: {usdBuy}");
-                            //}
-                            //else if (fromCurrency == "RUB" && toCurrency == "USD")
-                            //{
-                            //    usdSell = rate.sell;
-                            //    LogMessage($"Найден курс продажи USD: {usdSell}");
-                            //}
-                            //else if (fromCurrency == "EUR" && toCurrency == "RUB")
-                            //{
-                            //    eurBuy = rate.buy;
-                            //    LogMessage($"Найден курс покупки EUR: {eurBuy}");
-                            //}
-                            //else if (fromCurrency == "RUB" && toCurrency == "EUR")
-                            //{
-                            //    eurSell = rate.sell;
-                            //    LogMessage($"Найден курс продажи EUR: {eurSell}");
-                            //}
                             if (rate.fromCurrency.name == "USD" && rate.toCurrency.name == "RUB")
                             {
                                 usdBuy = rate.buy;
@@ -100,7 +138,6 @@ namespace CurrencyConverter.Services
                         }
                     }
 
-                    // Проверяем, все ли курсы найдены
                     foundInPrimaryCategory = usdBuy > 0 && usdSell > 0 && eurBuy > 0 && eurSell > 0;
 
                     if (!foundInPrimaryCategory)
@@ -128,67 +165,79 @@ namespace CurrencyConverter.Services
             }
         }
 
-        public static ExchangeRate GetAlphaRates()
+        public static ExchangeRate GetRaiffeisenRates()
         {
             try
             {
                 using (var webClient = new WebClient())
                 {
-                    string json = webClient.DownloadString("https://alfabank.ru/api/v1/scrooge/currencies/alfa-rates");
-                    dynamic data = JsonConvert.DeserializeObject(json);
+                    string json = webClient.DownloadString("https://www.raiffeisen.ru/oapi/currency_rate/get/?source=CASH&currencies=EUR,USD");
+                    LogMessage("Успешно получены данные от Райффайзен");
+                    LogDebugData("Raiffeisen JSON", json);
 
-                    return new ExchangeRate
+                    dynamic data = JsonConvert.DeserializeObject(json);
+                    double usdBuy = 0, usdSell = 0, eurBuy = 0, eurSell = 0;
+                    bool allRatesFound = false;
+
+                    var rubRates = data.data.rates[0];
+
+                    foreach (var exchange in rubRates.exchange)
                     {
-                        BankName = "Альфа-Банк",
-                        UsdBuy = (double)data.rates.cash.USD.buy,
-                        UsdSell = (double)data.rates.cash.USD.sell,
-                        EurBuy = (double)data.rates.cash.EUR.buy,
-                        EurSell = (double)data.rates.cash.EUR.sell,
+                        string currency = exchange.code;
+                        if (currency == "USD")
+                        {
+                            usdBuy = exchange.rates.buy.value;
+                            usdSell = exchange.rates.sell.value;
+                        }
+                        else if (currency == "EUR")
+                        {
+                            eurBuy = exchange.rates.buy.value;
+                            eurSell = exchange.rates.sell.value;
+                        }
+
+                    }
+
+                    allRatesFound = usdBuy > 0 && usdSell > 0 && eurBuy > 0 && eurSell > 0;
+
+                    if (!allRatesFound)
+                    {
+                        throw new Exception("Не удалось получить все необходимые курсы валют");
+                    }
+
+                    var result = new ExchangeRate
+                    {
+                        BankName = "Райффайзен Банк",
+                        UsdBuy = usdBuy,
+                        UsdSell = usdSell,
+                        EurBuy = eurBuy,
+                        EurSell = eurSell,
                     };
+
+                    LogMessage($"Финальные курсы Райффайзен: USD {result.UsdBuy}/{result.UsdSell}, EUR {result.EurBuy}/{result.EurSell}");
+                    return result;
                 }
             }
             catch (Exception ex)
             {
-                LogError("Ошибка при получении курсов Альфа-Банка", ex);
+                LogError("Ошибка при получении курсов Райффайзен", ex);
                 return null;
             }
         }
 
-        public static List<BankAddress> GetBankAddresses()
+        private static double ParseCurrencyValue(string value)
         {
-            return new List<BankAddress>
-            {
-                new BankAddress
-                {
-                    BankName = "Центральный Банк РФ",
-                    Addresses = new List<string>
-                    {
-                        "г. Брянск, ул. Красноармейская, 12",
-                        "г. Брянск, пр-т Ленина, 67"
-                    }
-                },
-                new BankAddress
-                {
-                    BankName = "Тинькофф Банк",
-                    Addresses = new List<string>
-                    {
-                        "г. Брянск, ул. Дуки, 58 (партнерский пункт)",
-                        "г. Брянск, пр-т Станке Димитрова, 77 (партнерский пункт)",
-                        "г. Брянск, ул. Красноармейская, 100 (партнерский пункт)"
-                    }
-                },
-                new BankAddress
-                {
-                    BankName = "Альфа Банк",
-                    Addresses = new List<string>
-                    {
-                        "г. Брянск, ул. Дуки, 58 (партнерский пункт)",
-                        "г. Брянск, пр-т Станке Димитрова, 77 (партнерский пункт)",
-                        "г. Брянск, ул. Красноармейская, 100 (партнерский пункт)"
-                    }
-                }
-            };
+            if (string.IsNullOrWhiteSpace(value))
+                return 0;
+
+            value = value.Trim().Replace(" ", "").Replace(",", ".");
+
+            if (double.TryParse(value, out double result))
+                return result;
+
+            return 0;
         }
+
+
 
         #region Логирование
         private static void LogMessage(string message)
