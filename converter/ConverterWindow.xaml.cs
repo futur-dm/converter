@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using CurrencyConverter.Models;
 using CurrencyConverter.Services;
-using CurrencyConverter.Utilities;
 
 namespace CurrencyConverter.Views
 {
@@ -18,8 +18,11 @@ namespace CurrencyConverter.Views
             get => _bestRate;
             set
             {
-                _bestRate = value;
-                OnPropertyChanged(nameof(BestRate));
+                if (_bestRate != value)
+                {
+                    _bestRate = value;
+                    OnPropertyChanged(nameof(BestRate));
+                }
             }
         }
 
@@ -29,8 +32,11 @@ namespace CurrencyConverter.Views
             get => _allRates;
             set
             {
-                _allRates = value;
-                OnPropertyChanged(nameof(AllRates));
+                if (_allRates != value)
+                {
+                    _allRates = value;
+                    OnPropertyChanged(nameof(AllRates));
+                }
             }
         }
 
@@ -38,83 +44,64 @@ namespace CurrencyConverter.Views
         {
             InitializeComponent();
             DataContext = this;
-            LoadRates();
+            Loaded += (s, e) => LoadRates();
         }
 
         private async void LoadRates()
         {
             try
             {
-                var cbrTask = System.Threading.Tasks.Task.Run(() => CurrencyParser.GetCbrRates());
-                var tinkoffTask = System.Threading.Tasks.Task.Run(() => CurrencyParser.GetTinkoffRates());
-                var alphaTask = System.Threading.Tasks.Task.Run(() => CurrencyParser.GetRaiffeisenRates());
-
-                var rates = new List<ExchangeRate>();
-
-                var cbrRate = await cbrTask;
-                if (cbrRate != null) rates.Add(cbrRate);
-
-                var tinkoffRate = await tinkoffTask;
-                if (tinkoffRate != null) rates.Add(tinkoffRate);
-
-                var alphaRate = await alphaTask;
-                if (alphaRate != null) rates.Add(alphaRate);
-
-                if (rates.Count > 0)
+                var tasks = new List<Task<ExchangeRate>>
                 {
-                    var bestBank = rates.OrderByDescending(b =>
-                        (b.UsdBuy * 0.6) +
-                        (b.EurBuy * 0.4) +
-                        (1 / Math.Max(b.UsdSell, 0.01) * 0.6) +
-                        (1 / Math.Max(b.EurSell, 0.01) * 0.4)
-                    ).First();
+                    Task.Run(() => CurrencyParser.GetCbrRates()),
+                    Task.Run(() => CurrencyParser.GetTinkoffRates()),
+                    Task.Run(() => CurrencyParser.GetRaiffeisenRates())
+                };
 
-                    BestRate = new ExchangeRate
-                    {
-                        BankName = bestBank.BankName + " (Лучший курс)",
-                        UsdBuy = bestBank.UsdBuy,
-                        UsdSell = bestBank.UsdSell,
-                        EurBuy = bestBank.EurBuy,
-                        EurSell = bestBank.EurSell
-                    };
+                await Task.WhenAll(tasks);
 
+                var rates = tasks.Select(t => t.Result).Where(r => r != null).ToList();
+
+                if (rates.Any())
+                {
+                    BestRate = rates.OrderByDescending(b => b.GetScore()).First();
+                    BestRate.BankName += " (Лучший курс)";
                     AllRates = rates;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки курсов: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Ошибка загрузки курсов: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        private void BestRate_MouseDown(object sender, MouseButtonEventArgs e)
+        // Обработчик события MouseDown (переименован для соответствия XAML)
+        private void BestRateBorder_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (BestRate != null && e.ChangedButton == MouseButton.Left)
+            if (e.ChangedButton == MouseButton.Left && BestRate != null)
             {
-                var bankDetailsWindow = new BankDetailsWindow(BestRate);
-                bankDetailsWindow.Show();
-                this.Close();
+                new BankDetailsWindow(BestRate).Show();
+                Close();
             }
+        }
+
+        private void CalculatorButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (BestRate == null)
+            {
+                MessageBox.Show("Сначала загрузите курсы валют", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            new CurrencyCalculatorWindow(BestRate).Show();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        private void CalculatorButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (BestRate != null)
-            {
-                var calculatorWindow = new CurrencyCalculatorWindow(BestRate);
-                calculatorWindow.Show();
-            }
-            else
-            {
-                MessageBox.Show("Сначала загрузите курсы валют", "Ошибка",
-                               MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
         }
     }
 }

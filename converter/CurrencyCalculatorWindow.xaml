@@ -12,43 +12,20 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Выбор валют -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center">
-            <ComboBox x:Name="FromCurrencyCombo" Width="100" Margin="5"
-                      SelectedIndex="0">
-                <ComboBoxItem>RUB</ComboBoxItem>
-                <ComboBoxItem>USD</ComboBoxItem>
-                <ComboBoxItem>EUR</ComboBoxItem>
-            </ComboBox>
-            <TextBlock Text=" → " VerticalAlignment="Center"/>
-            <ComboBox x:Name="ToCurrencyCombo" Width="100" Margin="5"
-                      SelectedIndex="1">
-                <ComboBoxItem>USD</ComboBoxItem>
-                <ComboBoxItem>EUR</ComboBoxItem>
-                <ComboBoxItem>RUB</ComboBoxItem>
-            </ComboBox>
+        <TextBlock Grid.Row="0" Text="Калькулятор валют" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <TextBlock Grid.Row="1" x:Name="RateInfoText" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBox x:Name="AmountTextBox" Width="100" Margin="0,0,10,0" Text="100"/>
+            <ComboBox x:Name="FromCurrencyCombo" Width="80" Margin="0,0,10,0"/>
+            <TextBlock Text="→" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <ComboBox x:Name="ToCurrencyCombo" Width="80"/>
         </StackPanel>
 
-        <!-- Ввод суммы -->
-        <TextBox x:Name="AmountTextBox" Grid.Row="1" Margin="5" 
-                 Text="100" FontSize="16" TextAlignment="Center"/>
+        <Button Grid.Row="3" Content="Рассчитать" x:Name="CalculateButton" 
+                Click="CalculateButton_Click" Margin="0,0,0,10" Padding="10,5"/>
 
-        <!-- Кнопка расчета -->
-        <Button Grid.Row="2" Content="Рассчитать" Margin="5" Padding="10"
-                Click="CalculateButton_Click"/>
-
-        <!-- Результат -->
-        <Border Grid.Row="3" BorderBrush="Gray" BorderThickness="1" 
-                Margin="5" Padding="10" CornerRadius="5">
-            <TextBlock x:Name="ResultText" TextAlignment="Center" FontSize="16"
-                       TextWrapping="Wrap"/>
-        </Border>
-
-        <!-- Информация о курсе -->
-        <Border Grid.Row="4" Background="LightGreen" Margin="5" 
-                Padding="10" CornerRadius="5">
-            <TextBlock x:Name="RateInfoText" TextAlignment="Center" 
-                       TextWrapping="Wrap"/>
-        </Border>
+        <TextBlock Grid.Row="4" x:Name="ResultText" FontSize="14" FontWeight="Bold"/>
     </Grid>
 </Window>

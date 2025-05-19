@@ -1,27 +1,50 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using CurrencyConverter.Models;
 
 namespace CurrencyConverter.Views
 {
     public partial class CurrencyCalculatorWindow : Window
     {
-        private readonly ExchangeRate _bestRate;
+        private readonly ExchangeRate _exchangeRate;
 
-        public CurrencyCalculatorWindow(ExchangeRate bestRate)
+        public CurrencyCalculatorWindow(ExchangeRate exchangeRate)
         {
             InitializeComponent();
-            _bestRate = bestRate;
+            _exchangeRate = exchangeRate;
+            InitializeCurrencies();
             UpdateRateInfo();
+        }
+
+        private void InitializeCurrencies()
+        {
+            // Добавляем все доступные валюты из курсов
+            foreach (var currency in _exchangeRate.CurrencyRates.Keys)
+            {
+                FromCurrencyCombo.Items.Add(new ComboBoxItem { Content = currency });
+                ToCurrencyCombo.Items.Add(new ComboBoxItem { Content = currency });
+            }
+
+            // Добавляем RUB, так как это базовая валюта
+            FromCurrencyCombo.Items.Add(new ComboBoxItem { Content = "RUB" });
+            ToCurrencyCombo.Items.Add(new ComboBoxItem { Content = "RUB" });
+
+            // Устанавливаем значения по умолчанию
+            FromCurrencyCombo.SelectedIndex = 0;
+            ToCurrencyCombo.SelectedIndex = 1;
         }
 
         private void UpdateRateInfo()
         {
-            RateInfoText.Text = $"Курсы {_bestRate.BankName}:\n" +
-                              $"USD: покупка {_bestRate.UsdBuy:N2}, продажа {_bestRate.UsdSell:N2}\n" +
-                              $"EUR: покупка {_bestRate.EurBuy:N2}, продажа {_bestRate.EurSell:N2}";
+            var rateInfo = $"Курсы {_exchangeRate.BankName}:\n";
+
+            foreach (var currency in _exchangeRate.CurrencyRates.Values)
+            {
+                rateInfo += $"{currency.CurrencyCode}: покупка {currency.BuyRate:N2}, продажа {currency.SellRate:N2}\n";
+            }
+
+            RateInfoText.Text = rateInfo;
         }
 
         private void CalculateButton_Click(object sender, RoutedEventArgs e)
@@ -38,7 +61,7 @@ namespace CurrencyConverter.Views
                 string fromCurrency = ((ComboBoxItem)FromCurrencyCombo.SelectedItem).Content.ToString();
                 string toCurrency = ((ComboBoxItem)ToCurrencyCombo.SelectedItem).Content.ToString();
 
-                double result = ConvertCurrency(amount, fromCurrency, toCurrency);
+                double result = _exchangeRate.Convert(fromCurrency, toCurrency, amount);
                 ResultText.Text = $"{amount:N2} {fromCurrency} = {result:N2} {toCurrency}";
             }
             catch (Exception ex)
@@ -46,29 +69,6 @@ namespace CurrencyConverter.Views
                 MessageBox.Show($"Ошибка расчета: {ex.Message}", "Ошибка",
                                MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        private double ConvertCurrency(double amount, string fromCurrency, string toCurrency)
-        {
-            if (fromCurrency == "RUB" && toCurrency == "USD")
-                return amount / _bestRate.UsdSell;
-
-            if (fromCurrency == "RUB" && toCurrency == "EUR")
-                return amount / _bestRate.EurSell;
-
-            if (fromCurrency == "USD" && toCurrency == "RUB")
-                return amount * _bestRate.UsdBuy;
-
-            if (fromCurrency == "EUR" && toCurrency == "RUB")
-                return amount * _bestRate.EurBuy;
-
-            if (fromCurrency == "USD" && toCurrency == "EUR")
-                return (amount * _bestRate.UsdBuy) / _bestRate.EurSell;
-
-            if (fromCurrency == "EUR" && toCurrency == "USD")
-                return (amount * _bestRate.EurBuy) / _bestRate.UsdSell;
-
-            throw new ArgumentException("Неподдерживаемая валютная пара");
         }
     }
 }
