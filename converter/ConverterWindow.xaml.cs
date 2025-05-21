@@ -12,16 +12,16 @@ namespace CurrencyConverter.Views
 {
     public partial class ConverterWindow : Window, INotifyPropertyChanged
     {
-        private ExchangeRate _bestRate;
-        public ExchangeRate BestRate
+        private List<BestCurrencyRate> _bestRates = new List<BestCurrencyRate>();
+        public List<BestCurrencyRate> BestRates
         {
-            get => _bestRate;
+            get => _bestRates;
             set
             {
-                if (_bestRate != value)
+                if (_bestRates != value)
                 {
-                    _bestRate = value;
-                    OnPropertyChanged(nameof(BestRate));
+                    _bestRates = value;
+                    OnPropertyChanged(nameof(BestRates));
                 }
             }
         }
@@ -64,9 +64,8 @@ namespace CurrencyConverter.Views
 
                 if (rates.Any())
                 {
-                    BestRate = rates.OrderByDescending(b => b.GetScore()).First();
-                    BestRate.BankName += " (Лучший курс)";
                     AllRates = rates;
+                    BestRates = CalculateBestRates(rates);
                 }
             }
             catch (Exception ex)
@@ -76,26 +75,77 @@ namespace CurrencyConverter.Views
             }
         }
 
-        // Обработчик события MouseDown (переименован для соответствия XAML)
-        private void BestRateBorder_MouseDown(object sender, MouseButtonEventArgs e)
+        private List<BestCurrencyRate> CalculateBestRates(List<ExchangeRate> allRates)
         {
-            if (e.ChangedButton == MouseButton.Left && BestRate != null)
+            var bestRates = new List<BestCurrencyRate>();
+            var currencyCodes = allRates.SelectMany(r => r.CurrencyRates.Keys).Distinct().ToList();
+
+            foreach (var currencyCode in currencyCodes)
             {
-                new BankDetailsWindow(BestRate).Show();
-                Close();
+                // Для ПОКУПКИ валюты (клиент покупает) ищем минимальный курс (банк продает дешевле)
+                var bestBuy = allRates
+                    .Where(r => r.CurrencyRates.ContainsKey(currencyCode))
+                    .OrderBy(r => r.CurrencyRates[currencyCode].BuyRate) // Изменено на OrderBy
+                    .FirstOrDefault();
+
+                // Для ПРОДАЖИ валюты (клиент продает) ищем максимальный курс (банк покупает дороже)
+                var bestSell = allRates
+                    .Where(r => r.CurrencyRates.ContainsKey(currencyCode))
+                    .OrderByDescending(r => r.CurrencyRates[currencyCode].SellRate) // Изменено на OrderByDescending
+                    .FirstOrDefault();
+
+                if (bestBuy != null && bestSell != null)
+                {
+                    bestRates.Add(new BestCurrencyRate
+                    {
+                        CurrencyCode = currencyCode,
+                        CurrencyName = bestBuy.CurrencyRates[currencyCode].CurrencyName,
+                        BuyRate = bestBuy.CurrencyRates[currencyCode].BuyRate,
+                        SellRate = bestSell.CurrencyRates[currencyCode].SellRate,
+                        BuyBank = bestBuy.BankName,
+                        SellBank = bestSell.BankName
+                    });
+                }
             }
+
+            return bestRates;
+        }
+
+        private ExchangeRate CreateBestRatesExchangeRate(List<ExchangeRate> allRates)
+        {
+            var bestRates = new ExchangeRate
+            {
+                BankName = "Лучшие курсы всех банков",
+                CurrencyRates = new Dictionary<string, CurrencyRate>()
+            };
+
+            foreach (var rate in CalculateBestRates(allRates))
+            {
+                bestRates.CurrencyRates[rate.CurrencyCode] = new CurrencyRate
+                {
+                    CurrencyCode = rate.CurrencyCode,
+                    CurrencyName = rate.CurrencyName,
+                    BuyRate = rate.BuyRate,
+                    SellRate = rate.SellRate,
+                    BuyBank = rate.BuyBank,
+                    SellBank = rate.SellBank
+                };
+            }
+
+            return bestRates;
         }
 
         private void CalculatorButton_Click(object sender, RoutedEventArgs e)
         {
-            if (BestRate == null)
+            if (AllRates == null || !AllRates.Any())
             {
                 MessageBox.Show("Сначала загрузите курсы валют", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            new CurrencyCalculatorWindow(BestRate).Show();
+            var bestRates = CreateBestRatesExchangeRate(AllRates);
+            new CurrencyCalculatorWindow(bestRates).Show();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -103,5 +153,15 @@ namespace CurrencyConverter.Views
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    public class BestCurrencyRate
+    {
+        public string CurrencyCode { get; set; }
+        public string CurrencyName { get; set; }
+        public double BuyRate { get; set; }
+        public double SellRate { get; set; }
+        public string BuyBank { get; set; }
+        public string SellBank { get; set; }
     }
 }

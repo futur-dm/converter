@@ -19,12 +19,14 @@ namespace CurrencyConverter.Models
             {"JPY", 0.1}
         };
 
-        public void AddOrUpdateRate(string currencyCode, string currencyName, double buyRate, double sellRate)
+        public void AddOrUpdateRate(string currencyCode, string currencyName, double buyRate, double sellRate, string buyBank = null, string sellBank = null)
         {
             if (CurrencyRates.ContainsKey(currencyCode))
             {
                 CurrencyRates[currencyCode].BuyRate = buyRate;
                 CurrencyRates[currencyCode].SellRate = sellRate;
+                if (buyBank != null) CurrencyRates[currencyCode].BuyBank = buyBank;
+                if (sellBank != null) CurrencyRates[currencyCode].SellBank = sellBank;
             }
             else
             {
@@ -33,7 +35,9 @@ namespace CurrencyConverter.Models
                     CurrencyCode = currencyCode,
                     CurrencyName = currencyName,
                     BuyRate = buyRate,
-                    SellRate = sellRate
+                    SellRate = sellRate,
+                    BuyBank = buyBank,
+                    SellBank = sellBank
                 };
             }
         }
@@ -58,7 +62,6 @@ namespace CurrencyConverter.Models
         {
             if (fromCurrency == toCurrency) return amount;
 
-            // Если одна из валют - RUB
             if (fromCurrency == "RUB" || toCurrency == "RUB")
             {
                 string foreignCurrency = fromCurrency == "RUB" ? toCurrency : fromCurrency;
@@ -66,13 +69,12 @@ namespace CurrencyConverter.Models
                 if (!CurrencyRates.ContainsKey(foreignCurrency))
                     throw new ArgumentException($"Банк {BankName} не поддерживает валюту {foreignCurrency}");
 
-                if (fromCurrency == "RUB") // RUB -> Валюта
+                if (fromCurrency == "RUB")
                     return amount / Math.Max(CurrencyRates[foreignCurrency].SellRate, 0.01);
-                else // Валюта -> RUB
+                else
                     return amount * CurrencyRates[foreignCurrency].BuyRate;
             }
 
-            // Конвертация между двумя валютами через RUB
             if (!CurrencyRates.ContainsKey(fromCurrency) || !CurrencyRates.ContainsKey(toCurrency))
                 throw new ArgumentException($"Банк {BankName} не поддерживает одну из валют: {fromCurrency} или {toCurrency}");
 
@@ -80,13 +82,11 @@ namespace CurrencyConverter.Models
             return rubAmount / Math.Max(CurrencyRates[toCurrency].SellRate, 0.01);
         }
 
-        // Получение курса покупки
         public double GetBuyRate(string currencyCode)
         {
             return CurrencyRates.TryGetValue(currencyCode, out var rate) ? rate.BuyRate : 0;
         }
 
-        // Получение курса продажи
         public double GetSellRate(string currencyCode)
         {
             return CurrencyRates.TryGetValue(currencyCode, out var rate) ? rate.SellRate : 0;
@@ -99,5 +99,7 @@ namespace CurrencyConverter.Models
         public string CurrencyName { get; set; }
         public double BuyRate { get; set; }
         public double SellRate { get; set; }
+        public string BuyBank { get; set; }
+        public string SellBank { get; set; }
     }
 }
