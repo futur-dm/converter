@@ -19,18 +19,15 @@ namespace CurrencyConverter.Views
 
         private void InitializeCurrencies()
         {
-            // Добавляем все доступные валюты из курсов
             foreach (var currency in _exchangeRate.CurrencyRates.Keys)
             {
                 FromCurrencyCombo.Items.Add(new ComboBoxItem { Content = currency });
                 ToCurrencyCombo.Items.Add(new ComboBoxItem { Content = currency });
             }
 
-            // Добавляем RUB, так как это базовая валюта
             FromCurrencyCombo.Items.Add(new ComboBoxItem { Content = "RUB" });
             ToCurrencyCombo.Items.Add(new ComboBoxItem { Content = "RUB" });
 
-            // Устанавливаем значения по умолчанию
             FromCurrencyCombo.SelectedIndex = 0;
             ToCurrencyCombo.SelectedIndex = 1;
         }

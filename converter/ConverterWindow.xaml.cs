@@ -82,16 +82,14 @@ namespace CurrencyConverter.Views
 
             foreach (var currencyCode in currencyCodes)
             {
-                // Для ПОКУПКИ валюты (клиент покупает) ищем минимальный курс (банк продает дешевле)
                 var bestBuy = allRates
                     .Where(r => r.CurrencyRates.ContainsKey(currencyCode))
-                    .OrderBy(r => r.CurrencyRates[currencyCode].BuyRate) // Изменено на OrderBy
+                    .OrderBy(r => r.CurrencyRates[currencyCode].BuyRate)
                     .FirstOrDefault();
 
-                // Для ПРОДАЖИ валюты (клиент продает) ищем максимальный курс (банк покупает дороже)
                 var bestSell = allRates
                     .Where(r => r.CurrencyRates.ContainsKey(currencyCode))
-                    .OrderByDescending(r => r.CurrencyRates[currencyCode].SellRate) // Изменено на OrderByDescending
+                    .OrderByDescending(r => r.CurrencyRates[currencyCode].SellRate)
                     .FirstOrDefault();
 
                 if (bestBuy != null && bestSell != null)
