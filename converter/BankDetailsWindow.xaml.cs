@@ -11,26 +11,30 @@ namespace CurrencyConverter.Views
 {
     public partial class BankDetailsWindow : Window, INotifyPropertyChanged
     {
-        public BankDetailsWindow(ExchangeRate bestRate)
+        private readonly string _selectedCurrencyCode;
+        private readonly List<ExchangeRate> _allRates;
+
+        public BankDetailsWindow(string currencyCode, List<ExchangeRate> allRates)
         {
             InitializeComponent();
             DataContext = this;
 
-            BackCommand = new RelayCommand(_ => GoBack());
+            _selectedCurrencyCode = currencyCode;
+            _allRates = allRates;
 
-            BestRate = bestRate;
+            BackCommand = new RelayCommand(_ => GoBack());
             BankAddresses = CurrencyParser.GetBankAddresses();
+            LoadCurrencyData();
         }
 
-        private ExchangeRate _bestRate;
-        public ExchangeRate BestRate
+        private string _currencyName;
+        public string CurrencyName
         {
-            get => _bestRate;
+            get => _currencyName;
             set
             {
-                _bestRate = value;
-                OnPropertyChanged(nameof(BestRate));
-                FilterAddresses();
+                _currencyName = value;
+                OnPropertyChanged(nameof(CurrencyName));
             }
         }
 
@@ -42,39 +46,51 @@ namespace CurrencyConverter.Views
             {
                 _bankAddresses = value;
                 OnPropertyChanged(nameof(BankAddresses));
-                FilterAddresses();
             }
         }
 
-        private List<BankAddress> _filteredAddresses;
-        public List<BankAddress> FilteredAddresses
+        private List<BankWithRates> _banksWithRates;
+        public List<BankWithRates> BanksWithRates
         {
-            get => _filteredAddresses;
+            get => _banksWithRates;
             set
             {
-                _filteredAddresses = value;
-                OnPropertyChanged(nameof(FilteredAddresses));
+                _banksWithRates = value;
+                OnPropertyChanged(nameof(BanksWithRates));
             }
         }
 
         public ICommand BackCommand { get; }
 
-        private void FilterAddresses()
+        private void LoadCurrencyData()
         {
-            if (BestRate == null || BankAddresses == null)
-                return;
+            var firstBankWithCurrency = _allRates
+                .FirstOrDefault(r => r.CurrencyRates.ContainsKey(_selectedCurrencyCode));
 
-            string bestBankName = BestRate.BankName.Replace(" (Лучший курс)", "");
-            FilteredAddresses = BankAddresses
-                .Where(a => a.BankName == bestBankName)
+            CurrencyName = firstBankWithCurrency?.CurrencyRates[_selectedCurrencyCode].CurrencyName
+                ?? _selectedCurrencyCode;
+
+            var banks = _allRates
+                .Where(r => r.CurrencyRates.ContainsKey(_selectedCurrencyCode))
+                .Select(r => new BankWithRates
+                {
+                    BankName = r.BankName,
+                    BuyRate = r.CurrencyRates[_selectedCurrencyCode].BuyRate,
+                    SellRate = r.CurrencyRates[_selectedCurrencyCode].SellRate,
+                    Addresses = BankAddresses
+                        .FirstOrDefault(a => a.BankName == r.BankName)?
+                        .Addresses ?? new List<string>()
+                })
+                .OrderBy(b => b.BuyRate)
                 .ToList();
+
+            BanksWithRates = banks;
         }
 
         private void GoBack()
         {
-            var converterWindow = new ConverterWindow();
-            converterWindow.Show();
-            this.Close();
+            new ConverterWindow().Show();
+            Close();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -82,5 +98,13 @@ namespace CurrencyConverter.Views
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    public class BankWithRates
+    {
+        public string BankName { get; set; }
+        public double BuyRate { get; set; }
+        public double SellRate { get; set; }
+        public List<string> Addresses { get; set; }
     }
 }

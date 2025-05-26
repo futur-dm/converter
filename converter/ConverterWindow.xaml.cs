@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Controls;
 using CurrencyConverter.Models;
 using CurrencyConverter.Services;
 
@@ -12,8 +13,8 @@ namespace CurrencyConverter.Views
 {
     public partial class ConverterWindow : Window, INotifyPropertyChanged
     {
-        private List<BestCurrencyRate> _bestRates = new List<BestCurrencyRate>();
-        public List<BestCurrencyRate> BestRates
+        private List<CurrencyRateDisplay> _bestRates = new List<CurrencyRateDisplay>();
+        public List<CurrencyRateDisplay> BestRates
         {
             get => _bestRates;
             set
@@ -75,9 +76,9 @@ namespace CurrencyConverter.Views
             }
         }
 
-        private List<BestCurrencyRate> CalculateBestRates(List<ExchangeRate> allRates)
+        private List<CurrencyRateDisplay> CalculateBestRates(List<ExchangeRate> allRates)
         {
-            var bestRates = new List<BestCurrencyRate>();
+            var bestRates = new List<CurrencyRateDisplay>();
             var currencyCodes = allRates.SelectMany(r => r.CurrencyRates.Keys).Distinct().ToList();
 
             foreach (var currencyCode in currencyCodes)
@@ -94,7 +95,7 @@ namespace CurrencyConverter.Views
 
                 if (bestBuy != null && bestSell != null)
                 {
-                    bestRates.Add(new BestCurrencyRate
+                    bestRates.Add(new CurrencyRateDisplay
                     {
                         CurrencyCode = currencyCode,
                         CurrencyName = bestBuy.CurrencyRates[currencyCode].CurrencyName,
@@ -107,6 +108,27 @@ namespace CurrencyConverter.Views
             }
 
             return bestRates;
+        }
+
+        private void CurrencyRate_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement element && element.DataContext is CurrencyRateDisplay rate)
+            {
+                new BankDetailsWindow(rate.CurrencyCode, AllRates).Show();
+            }
+        }
+
+        private void CalculatorButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (AllRates == null || !AllRates.Any())
+            {
+                MessageBox.Show("Сначала загрузите курсы валют", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var bestRates = CreateBestRatesExchangeRate(AllRates);
+            new CurrencyCalculatorWindow(bestRates).Show();
         }
 
         private ExchangeRate CreateBestRatesExchangeRate(List<ExchangeRate> allRates)
@@ -133,19 +155,6 @@ namespace CurrencyConverter.Views
             return bestRates;
         }
 
-        private void CalculatorButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (AllRates == null || !AllRates.Any())
-            {
-                MessageBox.Show("Сначала загрузите курсы валют", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var bestRates = CreateBestRatesExchangeRate(AllRates);
-            new CurrencyCalculatorWindow(bestRates).Show();
-        }
-
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName)
         {
@@ -153,7 +162,7 @@ namespace CurrencyConverter.Views
         }
     }
 
-    public class BestCurrencyRate
+    public class CurrencyRateDisplay
     {
         public string CurrencyCode { get; set; }
         public string CurrencyName { get; set; }
