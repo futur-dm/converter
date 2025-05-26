@@ -75,7 +75,7 @@ namespace CurrencyConverter.Services
                 },
                 new BankAddress
                 {
-                    BankName = "Райфайзен Банк",
+                    BankName = "Райффайзен Банк",
                     Addresses = new List<string>
                     {
                         "г. Брянск, Красноармейская улица, 65",
