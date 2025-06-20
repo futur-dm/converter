@@ -178,14 +178,22 @@ namespace CurrencyConverter.Services
                     var rubRates = data.data.rates[0];
                     foreach (var exchange in rubRates.exchange)
                     {
+                        LogMessage($" exchange {exchange}");
                         string currency = exchange.code.ToString();
                         if (SupportedCurrencies.ContainsKey(currency))
                         {
+                            double multiplier = exchange.rates.buy.multiplier != null
+                                ? (double)exchange.rates.buy.multiplier
+                                : 1.0;
+
+                            double buyRate = (double)exchange.rates.buy.value / multiplier;
+                            double sellRate = (double)exchange.rates.sell.value / multiplier;
+
                             rates.AddOrUpdateRate(
                                 currency,
                                 SupportedCurrencies[currency],
-                                (double)exchange.rates.buy.value,
-                                (double)exchange.rates.sell.value
+                                buyRate,
+                                sellRate
                             );
                         }
                     }
